@@ -1,60 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { useFrame } from '@react-three/fiber';
 import { useLoadingQueue } from '../LoadingQueueContext';
 
-
-const MiiladyModel = ({ url, position, rotation }) => {
-  const { queue, addToQueue, isLoading, setIsLoading } = useLoadingQueue();
+const MiiladyModel = ({ url, initialRotation = { x: 0, y: 1.5708, z: 0 } }) => {
+  const { isLoading, setIsLoading } = useLoadingQueue();
   const [gltf, setGltf] = useState(null);
+  const modelRef = useRef();
 
+  // Load the model
   useEffect(() => {
-    if (!isLoading && queue.includes(url)) {
+    if (!isLoading) {
       setIsLoading(true);
       const loader = new GLTFLoader();
-      loader.load(
-        url,
-        (loadedGltf) => {
-          console.log(`Model loaded successfully from URL: ${url}`);
-          setGltf(loadedGltf);
-          setIsLoading(false);
-        },
-        undefined,
-        (error) => {
-          console.error('An error occurred while loading the model:', error);
-          setIsLoading(false);
-        }
+      loader.load(url, (loadedGltf) => {
+        setGltf(loadedGltf);
+        setIsLoading(false);
+      });
+    }
+  }, [url, isLoading]);
+
+  // Set the initial rotation when the model is loaded
+  useEffect(() => {
+    if (modelRef.current && gltf) {
+      modelRef.current.rotation.set(
+        initialRotation.x,
+        initialRotation.y,
+        initialRotation.z
       );
     }
-  }, [url, isLoading, queue]);
+  }, [gltf, initialRotation]);
 
-  useEffect(() => {
-    addToQueue(url);
-  }, [url]);
+  // Rotate the model
+  useFrame(() => {
+    if (modelRef.current) {
+      modelRef.current.rotation.y += 0.005;
+    }
+  });
 
-  useEffect(() => {
-    return () => {
-        if (gltf) {
-            gltf.scene.traverse((object) => {
-                if (object.isMesh) {
-                    object.geometry.dispose();
-                    console.log(`Disposed geometry of model from URL: ${url}`);
-
-                    object.material.dispose();
-                    console.log(`Disposed material of model from URL: ${url}`);
-
-                    // If the material is a texture, dispose of the texture as well.
-                    if (object.material.map) {
-                        object.material.map.dispose();
-                        console.log(`Disposed texture map of model from URL: ${url}`);
-                    }
-                }
-            });
-            console.log(`Model from URL ${url} is being removed/unloaded`);
-        }
-    };
-  }, [url, gltf]);
-
-  return gltf ? <primitive object={gltf.scene} position={position} rotation={rotation} /> : null;
+  return gltf ? <primitive ref={modelRef} object={gltf.scene} /> : null;
 };
 
 export default MiiladyModel;
