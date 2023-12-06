@@ -13,6 +13,7 @@ const Home: NextPage = () => {
 
   return (
     <div className={`${styles.container} ${styles.gradientBackground}`}>
+	<div className={styles.devPreviewBanner}>DEV PREVIEW</div>
       <Head>
         <title>Miilady Site</title>
         <meta content="Miilady NFT Minting Site" name="description" />
